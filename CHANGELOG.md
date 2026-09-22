@@ -7,6 +7,22 @@
 
 ---
 
+## 📦 构建产物（可直接安装）
+
+| 项目 | 值 |
+|:---|:---|
+| **下载** | [Vmq-fix-heartbeat-debug.apk](https://github.com/Nanying666/Vmq-App-Optimized/releases/latest/download/Vmq-fix-heartbeat-debug.apk) |
+| 版本 | versionName `3.0` / versionCode `13` |
+| 包名 | `com.shinian.pay` |
+| 体积 | 9.14 MB（原版 9.28 MB） |
+| 签名 | **Debug 签名** |
+| SHA-256 | `ae93a724899baac4c3c233f8e90f138a583d3ea4d2cc32ad1b14967f7d50fa21` |
+
+> ⚠️ 原版 release 密钥存放于原作者的 GitHub Actions secrets 中，无法获取，故本版只能提供 Debug 签名包。
+> 若已安装原版 release 包，因签名不同**需先卸载**再安装。
+
+---
+
 ## 版本概览
 
 | 项目 | 原版 | 本优化版 | 变化 |

@@ -23,6 +23,25 @@
 >
 > ---
 
+## 📥 下载安装
+
+| 项目 | 值 |
+|:---|:---|
+| **APK 下载** | [**Vmq-fix-heartbeat-debug.apk**](https://github.com/Nanying666/Vmq-App-Optimized/releases/latest/download/Vmq-fix-heartbeat-debug.apk) |
+| 版本 | versionName **3.0** / versionCode **13** |
+| 包名 | `com.shinian.pay` |
+| 体积 | 9.14 MB |
+| 签名 | Debug 签名 |
+| SHA-256 | `ae93a724899baac4c3c233f8e90f138a583d3ea4d2cc32ad1b14967f7d50fa21` |
+
+> ⚠️ **安装说明**
+> - 本 APK 为 **Debug 签名**（原版 release 密钥存放在原作者的 GitHub Actions secrets 中，无法获取）。
+> - 若手机已安装原版 **release 包**，因签名不同**需先卸载**再安装。
+> - 首次启动会弹出**权限引导弹窗**，请按提示逐项授权。
+> - 安装后需在 APP 内配置你的服务器地址与密钥，再点「检测心跳」验证连通。
+>
+> 完整修复/优化清单见 [CHANGELOG.md](CHANGELOG.md)，历史版本见 [Releases](https://github.com/Nanying666/Vmq-App-Optimized/releases)。
+
 ## 📱 项目简介
 
 这是一款基于V 免签开发的 Android 收款监听应用，**无需 Root 权限和框架**即可实现支付宝和微信收款消息的自动监听与回调。
