@@ -15,6 +15,7 @@ import android.view.View.OnLongClickListener
 import android.widget.*
 import androidx.annotation.NonNull
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -46,7 +47,7 @@ import java.util.regex.Pattern
 /*
  email：shiniana@qq.com
  qq：1614790395
- GitHub：https://github.com/shinian-a
+ GitHub：https://github.com/Nanying666/Vmq-App-Optimized
  @©️版权所有
  */
 
@@ -55,7 +56,7 @@ import java.util.regex.Pattern
  *
  * 保持与 Java 版一致的对外契约：
  *  - 布局 activity_main.xml / menu 的 android:onClick 仍按同名 public 方法反射绑定；
- *  - LogsTextView / monitorLogHandler / getHttpURLConnection 保持静态可访问（供监听服务与设置页使用）。
+ *  - LogsTextView / monitorLogHandler 保持静态可访问（供监听服务使用）。
  */
 class MainActivity : AppCompatActivity(), OnLongClickListener {
 
@@ -68,12 +69,6 @@ class MainActivity : AppCompatActivity(), OnLongClickListener {
 
     // 定义 Bitmap 变量
     private var bitmap_image: Bitmap? = null
-    private var code = 0
-    private var ver: String? = null
-    private var version = 0
-    private var uplog: String? = null
-    private var upurl: String? = null
-    private var Version = 0
     private var state_swich: String? = null
     private var sj_dl: TextView? = null // 当前电量 Text
     private var capacity = 0
@@ -93,6 +88,10 @@ class MainActivity : AppCompatActivity(), OnLongClickListener {
         // 自动适配屏幕
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         setContentView(R.layout.activity_main)
+
+        // 主题为 NoActionBar，这里把布局内 Toolbar 接入为 support action bar，
+        // 使 onCreateOptionsMenu 注入的菜单（溢出菜单按钮）正常显示。
+        setSupportActionBar(findViewById<Toolbar?>(R.id.toolbar))
 
         Log.d(TAG, "布局加载完成")
 
@@ -322,81 +321,31 @@ class MainActivity : AppCompatActivity(), OnLongClickListener {
      */
     fun App() {
         Thread {
-            var httpConn: HttpURLConnection? = null
-            var dos: DataOutputStream? = null
-            var responseReader: BufferedReader? = null
             try {
-                // 检查版本号是否最新接口（HTTPS，防止更新响应被中间人劫持推送恶意安装包）
-                val urlPath = "https://w.t3yanzheng.com/A729B02347E855EC"
-
-                Version = getAppVersionCode().toInt()
-                val param = "ver=" + URLEncoder.encode(getAppVersionCode(), "UTF-8")
-
-                httpConn = getHttpURLConnection(urlPath)
-                dos = DataOutputStream(httpConn.outputStream)
-                dos.writeBytes(param)
-                dos.flush()
-
-                val resultCode = httpConn.responseCode
-                if (HttpURLConnection.HTTP_OK == resultCode) {
-                    val sb = StringBuilder()
-                    responseReader = BufferedReader(InputStreamReader(httpConn.inputStream, Charsets.UTF_8))
-                    var readLine: String?
-                    while (responseReader.readLine().also { readLine = it } != null) {
-                        sb.append(readLine).append("\n")
-                    }
-
-                    val data = JSONObject(sb.toString().trim())
-                    if (!data.has("code")) {
-                        Log.e(TAG, "检查更新失败：缺少 code 字段")
-                        return@Thread
-                    }
-                    val code = data.getInt("code")
-                    if (code == 200) {
-                        val ver = data.optString("ver", "")
-                        val version = data.optInt("version", 0)
-                        val uplog = data.optString("uplog", "")
-                        val upurl = data.optString("upurl", "")
-                        Log.i(TAG, "检查更新成功：$data$version--$Version")
-
-                        runOnUiThread {
-                            if (version > 0 && version > Version) {
-                                AlertDialog.Builder(this@MainActivity)
-                                    .setTitle("发现新版本！")
-                                    .setMessage(uplog)
-                                    .setIcon(R.drawable.app_gx)
-                                    .setCancelable(false)
-                                    .setPositiveButton("立即更新") { _, _ ->
-                                        val intent_d = Intent()
-                                        intent_d.action = "android.intent.action.VIEW"
-                                        intent_d.data = Uri.parse(upurl)
-                                        startActivity(intent_d)
-                                    }
-                                    .setNeutralButton("忽略更新", null)
-                                    .create()
-                                    .show()
-                            }
+                // 从本仓库 GitHub Releases 检查更新（原第三方接口已废弃）
+                val info = com.shinian.pay.util.UpdateChecker.check(getAppVersionName()) ?: return@Thread
+                if (!info.hasUpdate) {
+                    Log.d(TAG, "当前已是最新版本：${info.latestVersion}")
+                    return@Thread
+                }
+                runOnUiThread {
+                    AlertDialog.Builder(this@MainActivity)
+                        .setTitle("发现新版本 ${info.latestVersion}！")
+                        .setMessage(info.changelog.ifEmpty { "有新版本可用" })
+                        .setIcon(R.drawable.app_gx)
+                        .setCancelable(false)
+                        .setPositiveButton("立即更新") { _, _ ->
+                            val intent_d = Intent()
+                            intent_d.action = "android.intent.action.VIEW"
+                            intent_d.data = Uri.parse(info.downloadUrl)
+                            startActivity(intent_d)
                         }
-                    } else {
-                        Log.w(TAG, "检查更新返回错误码：$code")
-                    }
-                } else {
-                    Log.e(TAG, "检查更新请求失败，响应码：$resultCode")
+                        .setNeutralButton("忽略更新", null)
+                        .create()
+                        .show()
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "检查更新发生异常", e)
-            } finally {
-                try {
-                    dos?.close()
-                } catch (e: IOException) {
-                    Log.e(TAG, "关闭 DataOutputStream 失败", e)
-                }
-                try {
-                    responseReader?.close()
-                } catch (e: IOException) {
-                    Log.e(TAG, "关闭 BufferedReader 失败", e)
-                }
-                httpConn?.disconnect()
             }
         }.start()
     }
@@ -604,7 +553,7 @@ class MainActivity : AppCompatActivity(), OnLongClickListener {
                             shareIntent.putExtra(Intent.EXTRA_STREAM, apkUri)
                             shareIntent.putExtra(
                                 Intent.EXTRA_TEXT,
-                                getString(R.string.share_content, "https://shinian-a.github.io/")
+                                getString(R.string.share_content, "https://github.com/Nanying666/Vmq-App-Optimized")
                             )
                             shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             val chooser = Intent.createChooser(shareIntent, getString(R.string.share_content))
@@ -719,7 +668,7 @@ class MainActivity : AppCompatActivity(), OnLongClickListener {
         try {
             val shareIntent = Intent(Intent.ACTION_SEND)
             shareIntent.type = "text/plain"
-            val shareText = getString(R.string.share_content, "https://shinian-a.github.io/")
+            val shareText = getString(R.string.share_content, "https://github.com/Nanying666/Vmq-App-Optimized")
             shareIntent.putExtra(Intent.EXTRA_TEXT, shareText)
             val chooser = Intent.createChooser(shareIntent, getString(R.string.share_content))
             if (chooser != null) {
@@ -1176,7 +1125,7 @@ class MainActivity : AppCompatActivity(), OnLongClickListener {
     fun openAuthorWebsite(v: View?) {
         try {
             val intent = Intent(Intent.ACTION_VIEW)
-            intent.data = Uri.parse("https://shinian-a.github.io/")
+            intent.data = Uri.parse("https://github.com/Nanying666/Vmq-App-Optimized")
             startActivity(intent)
         } catch (e: Exception) {
             Toast.makeText(this, "无法打开网页，请检查浏览器设置", Toast.LENGTH_SHORT).show()
@@ -1353,22 +1302,6 @@ class MainActivity : AppCompatActivity(), OnLongClickListener {
             .show()
     }
 
-    // 获取当前程序版本号
-    fun getAppVersionCode(): String {
-        var versioncode = ""
-        try {
-            val pm = packageManager
-            val pi = pm.getPackageInfo(packageName, 0)
-            versioncode = pi.versionCode.toString()
-            if (versioncode.isEmpty()) {
-                return ""
-            }
-        } catch (e: Exception) {
-            Log.e("VersionInfo", "Exception", e)
-        }
-        return versioncode
-    }
-
     // 获取当前应用的版本名（展示给消费者的版本号）
     private fun getAppVersionName(): String {
         val packageManager = packageManager
@@ -1437,26 +1370,6 @@ class MainActivity : AppCompatActivity(), OnLongClickListener {
         private fun now(): String =
             java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
                 .format(Date())
-
-        @NonNull
-        @JvmStatic
-        @Throws(IOException::class)
-        fun getHttpURLConnection(urlPath: String): HttpURLConnection {
-            val url = URL(urlPath)
-            val httpConn = url.openConnection() as HttpURLConnection
-            // 设置参数
-            httpConn.doOutput = true     // 需要输出
-            httpConn.doInput = true      // 需要输入
-            httpConn.useCaches = false   // 不允许缓存
-            httpConn.requestMethod = "POST" // 设置 POST 方式连接
-            // 设置请求属性
-            httpConn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
-            httpConn.setRequestProperty("Connection", "Keep-Alive") // 维持长连接
-            httpConn.setRequestProperty("Charset", "UTF-8")
-            // 连接
-            httpConn.connect()
-            return httpConn
-        }
 
         @JvmStatic
         fun openAlipayPayPage(context: Context, qrcode: String): Boolean {

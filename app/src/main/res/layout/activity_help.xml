@@ -1,185 +1,268 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-	xmlns:android="http://schemas.android.com/apk/res/android"
-	android:orientation="vertical"
-	android:layout_width="match_parent"
-	android:layout_height="match_parent"
-	android:background="#FFFFFFFF"
-	android:fitsSystemWindows="true">
+<!--
+  帮助文档页（重构版）。
+  兼容性约定：btn_back 保持不变。
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/vmq_background"
+    android:orientation="vertical">
 
-	<!-- 标题栏 -->
-	<LinearLayout
-		android:orientation="horizontal"
-		android:layout_width="match_parent"
-		android:layout_height="56dp"
-		android:background="#FF03A9F5"
-		android:gravity="center_vertical"
-		android:paddingStart="8dp"
-		android:paddingEnd="16dp">
+    <!-- ========== 顶栏 ========== -->
+    <androidx.appcompat.widget.Toolbar
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/toolbar_height"
+        android:background="@drawable/bg_toolbar"
+        android:elevation="4dp">
 
-		<!-- 返回按钮 -->
-		<ImageView
-			android:id="@+id/btn_back"
-			android:layout_width="40dp"
-			android:layout_height="40dp"
-			android:src="@drawable/btn_back"
-			android:scaleType="fitCenter"
-			android:padding="8dp"
-			android:background="?android:attr/selectableItemBackgroundBorderless"
-			android:contentDescription="返回"/>
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-		<!-- 标题 -->
-		<TextView
-			android:layout_width="0dp"
-			android:layout_height="wrap_content"
-			android:layout_weight="1"
-			android:text="帮助文档"
-			android:textColor="#FFFFFFFF"
-			android:textSize="20sp"
-			android:textStyle="bold"
-			android:layout_marginStart="8dp"/>
+            <ImageButton
+                android:id="@+id/btn_back"
+                android:layout_width="@dimen/touch_target"
+                android:layout_height="@dimen/touch_target"
+                android:layout_centerVertical="true"
+                android:layout_marginStart="@dimen/space_xs"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="返回"
+                android:padding="@dimen/space_md"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_arrow_back" />
 
-	</LinearLayout>
+            <TextView
+                style="@style/Toolbar.Title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/HelpActivity" />
+        </RelativeLayout>
+    </androidx.appcompat.widget.Toolbar>
 
-	<ScrollView
-		android:layout_width="match_parent"
-		android:layout_height="match_parent">
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:scrollbars="none">
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="@dimen/page_margin_horizontal"
+            android:paddingEnd="@dimen/page_margin_horizontal"
+            android:paddingTop="@dimen/space_lg"
+            android:paddingBottom="@dimen/space_xl">
 
-	
-	
-	<LinearLayout
-		android:layout_width="wrap_content"
-		android:layout_height="wrap_content"
-		android:padding="20dp"
-		android:orientation="vertical"
-		android:gravity="center">
+            <!-- ========== 标题卡片 ========== -->
+            <LinearLayout
+                style="@style/Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
+                <TextView
+                    style="@style/Text.Title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/help_title" />
 
+                <View
+                    android:layout_width="40dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:layout_marginBottom="@dimen/space_md"
+                    android:background="@color/colorPrimary" />
 
-		<TextView
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:text="@string/help_title"
-				android:textSize="25sp"
-				android:textColor="#FFFF0000"
-				android:layout_marginBottom="30dp"/>
-		<TextView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text="@string/help_content"
-			android:layout_marginBottom="10dp"
-			android:textSize="20sp"
-			android:textColor="#FF00A8FF"/>
+                <TextView
+                    style="@style/Text.Body"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:lineSpacingExtra="4dp"
+                    android:text="@string/help_content"
+                    android:textColor="@color/vmq_on_surface_secondary" />
+            </LinearLayout>
 
-		<TextView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text="@string/help_content2"
-			android:layout_marginBottom="25dp"
-			android:textSize="20sp"
-			android:textColor="#FF00A8FF"/>
+            <!-- ========== 步骤说明 ========== -->
+            <LinearLayout
+                style="@style/Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
-		<TextView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text="@string/help_01"/>
+                <TextView
+                    style="@style/Text.SectionLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/space_md"
+                    android:text="@string/section_steps" />
 
-		<ImageView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:src="@drawable/help_pzsm1"
-			android:adjustViewBounds="true"
-			android:maxHeight="600px"
-			android:maxWidth="1200px"
-			android:layout_marginBottom="20dp"/>
+                <TextView
+                    style="@style/Text.Body"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/help_content2"
+                    android:textColor="@color/vmq_on_surface_secondary" />
+            </LinearLayout>
 
-		<TextView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text="@string/help_02"/>
+            <!-- ========== 步骤 1 ========== -->
+            <LinearLayout
+                style="@style/Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
-		<ImageView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:src="@drawable/help_pzsm2"
-			android:adjustViewBounds="true"
-			android:maxHeight="1500px"
-			android:maxWidth="1500px"
-			android:layout_marginBottom="20dp"/>
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/help_step_1" />
 
-		<TextView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text="@string/help_03"/>
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_md"
+                    android:adjustViewBounds="true"
+                    android:contentDescription="@string/help_01"
+                    android:src="@drawable/help_pzsm1" />
+            </LinearLayout>
 
-		<ImageView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:src="@drawable/help_pzsm3"
-			android:adjustViewBounds="true"
-			android:maxHeight="1000px"
-			android:maxWidth="2000px"
-			android:layout_marginBottom="20dp"/>
+            <!-- ========== 步骤 2 ========== -->
+            <LinearLayout
+                style="@style/Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
-		<TextView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text="@string/help_04"/>
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/help_step_2" />
 
-		<ImageView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:src="@drawable/help_pzsm4"
-			android:adjustViewBounds="true"
-			android:maxHeight="1000px"
-			android:maxWidth="2000px"
-			android:layout_marginBottom="20dp"/>
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_md"
+                    android:adjustViewBounds="true"
+                    android:contentDescription="@string/help_02"
+                    android:src="@drawable/help_pzsm2" />
+            </LinearLayout>
 
-		<TextView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text="@string/help_05"/>
+            <!-- ========== 步骤 3 ========== -->
+            <LinearLayout
+                style="@style/Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
-		<ImageView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:src="@drawable/help_pzsm5"
-			android:adjustViewBounds="true"
-			android:maxHeight="1000px"
-			android:maxWidth="2000px"
-			android:layout_marginBottom="20dp"/>
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/help_step_3" />
 
-		<TextView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text="@string/help_06"/>
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_md"
+                    android:adjustViewBounds="true"
+                    android:contentDescription="@string/help_03"
+                    android:src="@drawable/help_pzsm3" />
+            </LinearLayout>
 
-		<ImageView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:src="@drawable/help_pzsm6"
-			android:adjustViewBounds="true"
-			android:maxHeight="1000px"
-			android:maxWidth="2000px"
-            android:layout_marginBottom="20dp"/>
+            <!-- ========== 步骤 4 ========== -->
+            <LinearLayout
+                style="@style/Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
-		<TextView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text="@string/help_07"/>
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/help_step_4" />
 
-		<ImageView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:src="@drawable/help_pzsm7"
-			android:adjustViewBounds="true"
-			android:maxHeight="1000px"
-			android:maxWidth="2000px"/>
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_md"
+                    android:adjustViewBounds="true"
+                    android:contentDescription="@string/help_04"
+                    android:src="@drawable/help_pzsm4" />
+            </LinearLayout>
 
-	</LinearLayout>
+            <!-- ========== 步骤 5 ========== -->
+            <LinearLayout
+                style="@style/Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
-</ScrollView>
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/help_step_5" />
 
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_md"
+                    android:adjustViewBounds="true"
+                    android:contentDescription="@string/help_05"
+                    android:src="@drawable/help_pzsm5" />
+            </LinearLayout>
+
+            <!-- ========== 步骤 6 ========== -->
+            <LinearLayout
+                style="@style/Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/help_step_6" />
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_md"
+                    android:adjustViewBounds="true"
+                    android:contentDescription="@string/help_06"
+                    android:src="@drawable/help_pzsm6" />
+            </LinearLayout>
+
+            <!-- ========== 步骤 7 ========== -->
+            <LinearLayout
+                style="@style/Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    style="@style/Text.Subtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/help_step_7" />
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_md"
+                    android:adjustViewBounds="true"
+                    android:contentDescription="@string/help_07"
+                    android:src="@drawable/help_pzsm7" />
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
 </LinearLayout>
-

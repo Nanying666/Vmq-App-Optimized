@@ -44,3 +44,5 @@ desktop.ini
 /test-results/
 */test-results/
 reports/
+# ========== 发布 APK（随仓库分发，供 Releases 使用）==========
+!Vmq-App-Optimized-*.apk

@@ -11,12 +11,12 @@
 
 | 项目 | 值 |
 |:---|:---|
-| **下载** | [Vmq-fix-heartbeat-debug.apk](https://github.com/Nanying666/Vmq-App-Optimized/releases/latest/download/Vmq-fix-heartbeat-debug.apk) |
+| **下载** | [Vmq-App-Optimized-v3.0-debug.apk](https://github.com/Nanying666/Vmq-App-Optimized/releases/latest/download/Vmq-App-Optimized-v3.0-debug.apk) |
 | 版本 | versionName `3.0` / versionCode `13` |
 | 包名 | `com.shinian.pay` |
-| 体积 | 9.14 MB |
+| 体积 | 8.93 MB |
 | 签名 | **Debug 签名** |
-| SHA-256 | `2890f7e8a8ab1b0146504c0b3c5528e538ef89374e1dac9436d2641d0252cf9f` |
+| SHA-256 | `e288d37a5106cb98f56a469263a941438af10a2f31651360c32a90111ca0b9d8` |
 
 > ⚠️ 原版 release 密钥存放于原作者的 GitHub Actions secrets 中，无法获取，故本版只能提供 Debug 签名包。
 > 若已安装原版 release 包，因签名不同**需先卸载**再安装。
@@ -298,5 +298,61 @@
 - 工具类统一用 `object` + `@JvmStatic`（常量 `@JvmField`/`const`），Java 调用点语法不变；
 - 布局/菜单 `android:onClick` 反射绑定、`LogsTextView`/`monitorLogHandler`/`getHttpURLConnection` 静态契约保持不变；
 - 清单类名与组件声明不变，旧配置数据（`shinian` SP）完全兼容。
-
 > ⚠️ 说明：本环境可验证「编译 + JVM 单测 + 打包」，运行时行为（通知监听 / 相机 / 服务生命周期 / 收款回调）需真机回归验证。
+
+---
+
+## 十三、🎨 UI 全量重构（设计系统 + 卡片式布局）
+
+建立统一的设计系统，并将全部页面改写为卡片式 Material 风格。
+
+**设计系统（新增/重写）**：
+
+| 文件 | 内容 |
+|:---|:---|
+| `values/colors.xml` | 品牌色（蓝 `#1A73E8` + 青绿 `#00BFA5`）、语义色（成功/警告/错误/信息）、中性色阶、日志终端配色 |
+| `values/dimens.xml` | 8dp 栅格间距、圆角、组件尺寸、字号、阴影 —— 消除散落的魔法数字 |
+| `values/styles.xml` | `Text.*`（Display/Title/Subtitle/Body/Caption/SectionLabel）、`Card`、`Button.Primary/Secondary`、`SettingRow.*`、`Toolbar.Title` |
+| `drawable/`（10 个新增） | `bg_card`、`bg_button_primary`、`bg_button_secondary`、`bg_setting_row`、`bg_log`、`bg_toolbar`、`bg_info_panel`、`bg_icon_circle`、`bg_badge_success/neutral`、`ic_arrow_back`（矢量） |
+
+**页面重构**：
+
+| 页面 | 改动 |
+|:---|:---|
+| 主界面 | 配置信息卡 / 快捷操作卡 / 监控日志卡三段式；按钮高度 42dp→48dp（达标最小触控）；日志区改为深色终端风圆角面板 |
+| 设置页 | 分组卡片 + 64dp 列表行 + 右侧箭头；分区标题（版本/反馈/帮助/服务/其他） |
+| 关于页 | 图标头卡 + 简介卡 + 功能入口卡 |
+| 帮助页 | 步骤卡片化；图片改为 `match_parent` + `adjustViewBounds`（原 `wrap_content` + 固定 px，小屏会溢出） |
+
+**兼容性保障**：
+
+- 所有 `android:id`、`android:onClick` 逐一保留，Java/Kotlin 绑定零改动；
+- 保留 zxing 依赖的 `ripple.xml`、`ViewfinderView` 属性与 `toolbar_scanner.xml`；
+- 保留旧主题别名 `HideStyle` 与 `activity_horizontal_margin` 等旧维度引用。
+
+> ⚠️ 主题由 `Light.DarkActionBar` 改为 `NoActionBar` 后，主界面改用布局内 `Toolbar` 承载溢出菜单，
+> 通过 `setSupportActionBar()` 接入，菜单项（群聊/分享/打赏/关于/权限检查/设置/退出）功能不变。
+
+---
+
+## 十四、🔗 更新源与仓库链接切换为当前仓库
+
+原实现的「检查更新」指向第三方私有接口（`w.t3yanzheng.com`，`POST ver=xxx` + 自定义 JSON），
+与 GitHub 托管方式不兼容，已整体替换。
+
+| 项 | 原 | 现 |
+|:---|:---|:---|
+| 更新检查 | 第三方私有接口（明文 http / https 混用） | **本仓库 GitHub Releases API**（`api.github.com/repos/Nanying666/Vmq-App-Optimized/releases/latest`） |
+| 版本比较 | 服务端返回 `version` 字段 | release `tag_name` 与本地 versionName **逐段数值比较** |
+| 更新说明 | 服务端 `uplog` | release `body` |
+| 下载地址 | 服务端 `upurl` | release 内首个 `.apk` 资产（无资产则回退 release 页面） |
+| 关于页 GitHub 链接 | `github.com/shinian-a/Vmq-App` | `github.com/Nanying666/Vmq-App-Optimized` |
+| 问题反馈链接 | `.../shinian-a/Vmq-App/issues` | `.../Nanying666/Vmq-App-Optimized/issues` |
+| 分享文案链接 | `shinian-a.github.io` | 当前仓库地址 |
+
+**实现**：新增 `util/UpdateChecker.kt`，将重复的更新检查逻辑从 `MainActivity` 与 `SettingActivity` 中抽出统一维护；
+GitHub API 强制要求 `User-Agent`，已显式设置；未鉴权限流 60 次/小时/IP，失败时静默降级为"已是最新"。
+
+> ⚠️ 原第三方接口依赖服务端契约，若你的服务端仍在使用该接口，请自行保留原逻辑或另建更新源。
+
+---

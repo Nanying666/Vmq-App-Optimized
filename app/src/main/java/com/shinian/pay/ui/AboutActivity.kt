@@ -116,7 +116,7 @@ class AboutActivity : AppCompatActivity() {
             "开发者：十年\n" +
             "邮箱：shiniana@qq.com\n" +
             "QQ 群：yy-t5uc2_M6gq66cqFFRDHR4LqQLPCAi\n\n" +
-            "GitHub: https://github.com/shinian-a/Vmq-App\n\n" +
+            "GitHub: https://github.com/Nanying666/Vmq-App-Optimized\n\n" +
             "【版权声明】\n" +
             "Copyright © 2022 decade · 版权所有\n\n" +
             "本项目基于 V 免签开发，感谢原作者的贡献。\n\n" +
@@ -133,7 +133,7 @@ class AboutActivity : AppCompatActivity() {
     fun openGitHub(v: View?) {
         try {
             val intent = Intent(Intent.ACTION_VIEW)
-            intent.data = Uri.parse("https://github.com/shinian-a/Vmq-App")
+            intent.data = Uri.parse("https://github.com/Nanying666/Vmq-App-Optimized")
             startActivity(intent)
         } catch (e: Exception) {
             Toast.makeText(this, "无法打开浏览器", Toast.LENGTH_SHORT).show()

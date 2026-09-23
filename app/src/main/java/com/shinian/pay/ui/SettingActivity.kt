@@ -23,18 +23,11 @@ import com.shinian.pay.R
 import com.shinian.pay.manager.AppConstants
 import com.shinian.pay.service.DaemonService
 import com.shinian.pay.service.PlayerMusicService
-import com.shinian.pay.ui.MainActivity.Companion.getHttpURLConnection
-import org.json.JSONObject
-import java.io.BufferedReader
 import java.io.ByteArrayOutputStream
-import java.io.Closeable
-import java.io.DataOutputStream
 import java.io.IOException
 import java.io.InputStream
-import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
-import java.net.URLEncoder
 
 /**
  * 软件设置页（Kotlin 版）。
@@ -43,12 +36,6 @@ import java.net.URLEncoder
 class SettingActivity : AppCompatActivity() {
 
     private var version: TextView? = null
-    private var code = 0
-    private var ver: String? = null
-    private var uplog: String? = null
-    private var upurl: String? = null
-    private var Version = 0 // 当前软件版本号
-    private var versions = 0 // 最新软件版本号
     private var state_switch: Switch? = null
     private var state_swich: String? = null
 
@@ -130,34 +117,7 @@ class SettingActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    /** 通用资源关闭方法 */
-    private fun closeResource(resource: Closeable?, resourceName: String) {
-        if (resource != null) {
-            try {
-                resource.close()
-            } catch (e: IOException) {
-                Log.e(TAG, "关闭 $resourceName 失败", e)
-            }
-        }
-    }
-
-    // 获取当前程序版本号
-    fun getAppVersionCode(): String {
-        var versioncode = ""
-        try {
-            val pm = packageManager
-            val pi = pm.getPackageInfo(packageName, 0)
-            versioncode = pi.versionCode.toString()
-            if (versioncode.isEmpty()) {
-                return ""
-            }
-        } catch (e: PackageManager.NameNotFoundException) {
-            Log.e(TAG, "获取版本号失败", e)
-        }
-        return versioncode
-    }
-
-    // 获取当前应用的版本名
+    // 获取当前应用的版本名（展示给消费者的版本号）
     private val appVersionName: String
         get() {
             val packageManager = packageManager
@@ -177,82 +137,16 @@ class SettingActivity : AppCompatActivity() {
      * @return true 表示有新版本，false 表示已是最新版本或检查失败
      */
     fun App(): Boolean {
-        var httpConn: HttpURLConnection? = null
-        var dos: DataOutputStream? = null
-        var responseReader: BufferedReader? = null
-
         try {
-            // TODO: 建议升级为 HTTPS
-            val urlPath = "http://w.t3yanzheng.com/A729B02347E855EC"
-
-            // 当前软件版本号
-            val versionCode = getAppVersionCode()
-            if (versionCode.isEmpty()) {
-                Log.e(TAG, "获取版本号失败")
+            // 从本仓库 GitHub Releases 检查更新（原第三方接口已废弃）
+            val info = com.shinian.pay.util.UpdateChecker.check(appVersionName) ?: return false
+            if (!info.hasUpdate) {
                 return false
             }
-
-            Version = versionCode.toInt()
-            val param = "ver=" + URLEncoder.encode(versionCode, "UTF-8")
-
-            // 建立连接
-            httpConn = getHttpURLConnection(urlPath)
-
-            // 建立输入流，向指向的 URL 传入参数
-            dos = DataOutputStream(httpConn.outputStream)
-            dos.writeBytes(param)
-            dos.flush()
-
-            // 获得响应状态
-            val resultCode = httpConn.responseCode
-            if (HttpURLConnection.HTTP_OK == resultCode) {
-                val sb = StringBuilder()
-                responseReader = BufferedReader(InputStreamReader(httpConn.inputStream, Charsets.UTF_8))
-                var readLine: String?
-                while (responseReader.readLine().also { readLine = it } != null) {
-                    sb.append(readLine).append("\n")
-                }
-
-                val data = JSONObject(sb.toString().trim())
-
-                // 验证必要字段是否存在
-                if (!data.has("code")) {
-                    Log.e(TAG, "检查更新失败：缺少 code 字段")
-                    return false
-                }
-
-                code = data.getInt("code")
-
-                // 只有在 code==200 时才尝试获取其他字段
-                if (code == 200) {
-                    // 安全地获取可选字段，避免崩溃
-                    ver = data.optString("ver", "")
-                    versions = data.optInt("version", 0)
-                    uplog = data.optString("uplog", "")
-                    upurl = data.optString("upurl", "")
-
-                    // 验证必要字段
-                    if (versions > 0 && versions > Version) {
-                        val finalUplog = uplog ?: ""
-                        val finalUpurl = upurl ?: ""
-                        runOnUiThread { showUpdateDialog(finalUplog, finalUpurl) }
-                        return true
-                    }
-                } else {
-                    Log.w(TAG, "检查更新返回错误码：$code")
-                }
-            } else {
-                Log.e(TAG, "检查更新请求失败，响应码：$resultCode")
-            }
-        } catch (e: NumberFormatException) {
-            Log.e(TAG, "版本号格式错误", e)
+            runOnUiThread { showUpdateDialog(info.changelog, info.downloadUrl) }
+            return true
         } catch (e: Exception) {
             Log.e(TAG, "检查更新发生异常", e)
-        } finally {
-            // 关闭资源
-            closeResource(dos, "DataOutputStream")
-            closeResource(responseReader, "BufferedReader")
-            httpConn?.disconnect()
         }
         return false
     }
@@ -346,7 +240,7 @@ class SettingActivity : AppCompatActivity() {
     fun email_fk(view: View?) {
         try {
             val intent = Intent(Intent.ACTION_VIEW)
-            intent.data = Uri.parse("https://github.com/shinian-a/Vmq-App/issues")
+            intent.data = Uri.parse("https://github.com/Nanying666/Vmq-App-Optimized/issues")
             startActivity(intent)
         } catch (e: Exception) {
             Toast.makeText(this, "无法打开浏览器，请检查浏览器设置", Toast.LENGTH_SHORT).show()

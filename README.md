@@ -15,6 +15,10 @@
 > | ⚡ 稳定性 | 单进程化（原 6 进程）、WakeLock 超时释放、消除多处资源泄漏 |
 > | 🧹 代码清理 | 删除 12 个失效保活文件（约 1600 行），保留真正有效的保活组合 |
 > | 🛡️ 安全 | 更新检查切 HTTPS、release 包自动关闭调试日志 |
+> | 🔀 双通道 | 可选备用服务器通道，主通道连续失败自动切换、恢复自动回切（迟滞防抖） |
+> | 🧪 单元测试 | 通知解析 / 金额解析 / 双通道状态机，共 **69 个 JVM 用例** |
+> | 🧱 Kotlin 化 | 业务包 `com.shinian` **100% Kotlin**（Kotlin 2.3.10 + Coroutines） |
+> | 🎨 UI 重构 | 建立设计系统（色板/间距/样式），全部页面改为卡片式 Material 风格 |
 >
 > 📄 **完整对比说明请见 [CHANGELOG.md](CHANGELOG.md)**
 >
@@ -27,18 +31,19 @@
 
 | 项目 | 值 |
 |:---|:---|
-| **APK 下载** | [**Vmq-fix-heartbeat-debug.apk**](https://github.com/Nanying666/Vmq-App-Optimized/releases/latest/download/Vmq-fix-heartbeat-debug.apk) |
+| **APK 下载** | [**Vmq-App-Optimized-v3.0-debug.apk**](https://github.com/Nanying666/Vmq-App-Optimized/releases/latest/download/Vmq-App-Optimized-v3.0-debug.apk) |
 | 版本 | versionName **3.0** / versionCode **13** |
 | 包名 | `com.shinian.pay` |
-| 体积 | 9.14 MB |
+| 体积 | 8.93 MB |
 | 签名 | Debug 签名 |
-| SHA-256 | `ae93a724899baac4c3c233f8e90f138a583d3ea4d2cc32ad1b14967f7d50fa21` |
+| SHA-256 | `e288d37a5106cb98f56a469263a941438af10a2f31651360c32a90111ca0b9d8` |
 
 > ⚠️ **安装说明**
 > - 本 APK 为 **Debug 签名**（原版 release 密钥存放在原作者的 GitHub Actions secrets 中，无法获取）。
 > - 若手机已安装原版 **release 包**，因签名不同**需先卸载**再安装。
 > - 首次启动会弹出**权限引导弹窗**，请按提示逐项授权。
 > - 安装后需在 APP 内配置你的服务器地址与密钥，再点「检测心跳」验证连通。
+> - 「软件设置 → 检测更新」会从本仓库 GitHub Releases 检查新版本。
 >
 > 完整修复/优化清单见 [CHANGELOG.md](CHANGELOG.md)，历史版本见 [Releases](https://github.com/Nanying666/Vmq-App-Optimized/releases)。
 
