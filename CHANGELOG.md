@@ -261,10 +261,10 @@
 |:---|:---:|:---|
 | `PayNotificationParserTest` | 57 | 微信/支付宝各类通知文案→金额解析（含边界/易错用例），参数化 |
 | `ChannelManagerTest` | 4 | 双通道故障切换状态机参数/约束/方法签名回归 |
-
 总计 **61 个用例全部通过（0 failures / 0 errors）**，CI 可直接 `:app:testDebugUnitTest` 验证。
 
 ---
+
 
 ## 十一、许可证与致谢
 
@@ -276,3 +276,27 @@
 - 详细许可条款见项目根目录 [LICENSE](LICENSE) 文件
 
 感谢原作者的开源贡献。如本项目对你有帮助，也请给[原项目](https://github.com/shinian-a/Vmq-App)一个 Star ⭐。
+
+---
+
+## 十二、🧱 全量 Kotlin 化重构
+
+业务包 `com.shinian` 已从 Java **100% 迁移到 Kotlin**（Kotlin 2.3.10 + Coroutines 1.9.0），
+分 6 个阶段推进，每阶段均通过编译与单测验证：
+
+| 阶段 | 内容 |
+|:---|:---|
+| S0 | 启用 Kotlin 工具链（AGP 8.12 + KGP 2.3.10 + kotlinx-coroutines） |
+| S1 | 叶子类迁移：`NetworkClient` / `ChannelManager` / `AppConstants` / `SystemUtils` / `BitmapUtil` / `SaveImageUtils` / `AlertDialogUtil` / `HelpActivity` |
+| S2 | 抽取收款金额解析为独立 `MoneyParser`（纯 JVM 逻辑，无 Android 依赖） |
+| S3 | `VmqApplication` / 小 Activity / Service 层（`DaemonService` / `ForeService` / `CancelNoticeService` / `PlayerMusicService`） |
+| S4 | 收款链路核心 `PayNotificationListenerService` |
+| S5 | `MainActivity`(1930 行) / `SettingActivity`(525 行) / `PermissionGuideHelper`(367 行) |
+
+**兼容性保障**：
+
+- 工具类统一用 `object` + `@JvmStatic`（常量 `@JvmField`/`const`），Java 调用点语法不变；
+- 布局/菜单 `android:onClick` 反射绑定、`LogsTextView`/`monitorLogHandler`/`getHttpURLConnection` 静态契约保持不变；
+- 清单类名与组件声明不变，旧配置数据（`shinian` SP）完全兼容。
+
+> ⚠️ 说明：本环境可验证「编译 + JVM 单测 + 打包」，运行时行为（通知监听 / 相机 / 服务生命周期 / 收款回调）需真机回归验证。
