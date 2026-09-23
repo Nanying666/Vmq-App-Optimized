@@ -166,15 +166,11 @@ public class PayNotificationListenerService extends NotificationListenerService 
     private static final String PACKAGE_WECHAT_WORK = "com.tencent.wework";
     private static final String PACKAGE_ALIPAY = "com.eg.android.AlipayGphone";
     private static final String PACKAGE_SELF = "com.shinian.pay";
-    
     // 微信支付标题关键字
     private static final String[] WECHAT_PAY_TITLES = {
         "微信支付", "微信收款助手", "微信收款商业版", "对外收款", "企业微信","Weixin Cashier Assistant"
     };
-    
-    // 金额提取正则表达式（预编译提升性能）
-    private static final java.util.regex.Pattern MONEY_PATTERN = 
-            java.util.regex.Pattern.compile("\\d+(?:\\.\\d+)?");
+
 
     /**
      * 当收到一条消息的时候回调，sbn 即收到的消息
@@ -213,49 +209,13 @@ public class PayNotificationListenerService extends NotificationListenerService 
     }
     
     /**
-     * 从文本内容中提取金额数字
+     * 从文本内容中提取金额（委托给 {@link com.shinian.pay.util.MoneyParser}，
+     * 保持静态方法签名以兼容既有调用点与单元测试）。
      * @param content 包含金额的文本内容
      * @return 提取到的金额字符串，如果未找到则返回 null
      */
     public static String getMoney(String content) {
-        // 空值检查
-        if (content == null || content.isEmpty()) return null;
-
-        // 支持多种关键词：收款、付款、到账、转入
-        int startIndex = -1;
-        String[] keywords = {"收款", "付款", "到账", "转入"};
-        for (String keyword : keywords) {
-            int index = content.indexOf(keyword);
-            if (index >= 0) {
-                startIndex = index;
-                break;
-            }
-        }
-
-        // 如果没有找到任何关键词，尝试从整个内容中提取
-        String searchText = (startIndex >= 0) ? content.substring(startIndex) : content;
-
-        List<String> validAmounts = new ArrayList<>();
-        // 创建正则表达式模式
-        java.util.regex.Matcher matcher = MONEY_PATTERN.matcher(searchText);
-
-        while (matcher.find()) {
-            String matched = matcher.group();
-            if (isValidNumber(matched)) {
-                try {
-                    double amount = Double.parseDouble(matched);
-                    // 金额范围
-                    if (amount >= 0.01 && amount <= 999999.99) {
-                        validAmounts.add(matched);
-                    }
-                } catch (NumberFormatException e) {
-                    Log.w(TAG, "getMoney: 匹配到无效金额：" + matched);
-                }
-            }
-        }
-
-        if (!validAmounts.isEmpty()) return validAmounts.get(0);
-        return null;
+        return com.shinian.pay.util.MoneyParser.getMoney(content);
     }
     
     /**
@@ -575,30 +535,12 @@ public class PayNotificationListenerService extends NotificationListenerService 
     }
 
     /**
-     * 验证字符串是否为合法的数字格式
+     * 验证字符串是否为合法的数字格式（委托给 {@link com.shinian.pay.util.MoneyParser}）
      * @param str 待验证的字符串
      * @return true ，false
      */
     private static boolean isValidNumber(String str) {
-        if (str == null || str.isEmpty()) {
-            return false;
-        }
-
-        // 不能以小数点开头或结尾，且只能包含一个小数点
-        int dotCount = 0;
-        for (int i = 0; i < str.length(); i++) {
-            char c = str.charAt(i);
-            if (c == '.') {
-                dotCount++;
-                // 不能有超过一个小数点，或者小数点在开头/结尾
-                if (dotCount > 1 || i == 0 || i == str.length() - 1) {
-                    return false;
-                }
-            } else if (!Character.isDigit(c)) {
-                return false;
-            }
-        }
-        return true;
+        return com.shinian.pay.util.MoneyParser.isValidNumber(str);
     }
     
     /**
