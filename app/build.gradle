@@ -1,5 +1,6 @@
 plugins {
     id("com.android.application")
+    id("org.jetbrains.kotlin.android")
 }
 
 
@@ -45,10 +46,13 @@ android {
             signingConfig signingConfigs.release  // 使用签名配置
         }
     }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
     }
 
     // 强制排除旧版本 Kotlin 依赖
@@ -75,6 +79,8 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.9.2'
     // jvm test
     testImplementation 'junit:junit:4.13.2'
+    // Kotlin 标准库 + 协程（渐进式 Kotlin 化）
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
     // androidTest
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'

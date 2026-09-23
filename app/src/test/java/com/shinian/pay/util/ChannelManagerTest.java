@@ -35,17 +35,29 @@ public class ChannelManagerTest {
         org.junit.Assert.assertEquals("main_consec_goods", (String) readStaticField("SP_MAIN_GOODS"));
     }
 
-    /** 工具类约束：final 类 + 私有构造 + 全静态方法 */
+    /** 工具类约束：Kotlin object 单例 + 私有构造 + 全部公开 API 为 @JvmStatic（兼容 Java 调用点） */
     @Test
-    public void utilityClassConstraints() {
+    public void utilityClassConstraints() throws Exception {
         int mod = ChannelManager.class.getModifiers();
         org.junit.Assert.assertTrue("工具类必须 final", Modifier.isFinal(mod));
         org.junit.Assert.assertTrue("构造函数必须私有",
                 Modifier.isPrivate(ChannelManager.class.getDeclaredConstructors()[0].getModifiers()));
-        for (java.lang.reflect.Method m : ChannelManager.class.getDeclaredMethods()) {
-            if (m.getName().equals("sp") || m.getName().equals("nz")) {
-                org.junit.Assert.assertTrue("内部 helper 必须静态", Modifier.isStatic(m.getModifiers()));
+        // Kotlin object 会生成静态 INSTANCE 字段（单例语义）
+        java.lang.reflect.Field instanceField = ChannelManager.class.getDeclaredField("INSTANCE");
+        org.junit.Assert.assertTrue("必须为 Kotlin 单例（静态 INSTANCE）",
+                Modifier.isStatic(instanceField.getModifiers()));
+        // 公开 API 必须是 static（@JvmStatic），否则 Java 调用点 NetworkClient.getWithRetry 等会编译失败
+        String[] staticApi = {"resolve", "hasBackup", "reset", "saveBackup",
+                "recordMainSuccess", "recordMainFailure", "activeName"};
+        for (String name : staticApi) {
+            boolean found = false;
+            for (java.lang.reflect.Method m : ChannelManager.class.getDeclaredMethods()) {
+                if (m.getName().equals(name) && Modifier.isStatic(m.getModifiers())) {
+                    found = true;
+                    break;
+                }
             }
+            org.junit.Assert.assertTrue("公开 API 必须为 static(@JvmStatic): " + name, found);
         }
     }
 
