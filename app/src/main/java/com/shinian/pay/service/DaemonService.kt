@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
@@ -28,12 +29,27 @@ class DaemonService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
             createNotificationChannel()
             val builder = createNotificationBuilder()
-            startForeground(NOTICE_ID, builder.build())
+            startForegroundCompat(builder.build())
             // 如果觉得常驻通知栏体验不好，可以通过启动 CancelNoticeService 将通知移除，oom_adj 值不变
             startService(Intent(this, CancelNoticeService::class.java))
         } else {
             @Suppress("DEPRECATION")
             startForeground(NOTICE_ID, Notification())
+        }
+    }
+
+    /**
+     * 启动前台服务（区分版本，Android 14 必须显式声明前台服务类型）。
+     *
+     * Android 14（API 34）起，若 Manifest 声明了 `foregroundServiceType`，
+     * `startForeground(id, notification)` 会抛 `MissingForegroundServiceTypeException`；
+     * 必须改用三参重载并传入匹配的类型，否则服务直接崩溃、保活失效。
+     */
+    private fun startForegroundCompat(notification: Notification) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            startForeground(NOTICE_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+        } else {
+            startForeground(NOTICE_ID, notification)
         }
     }
 

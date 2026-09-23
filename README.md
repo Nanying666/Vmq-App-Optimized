@@ -34,9 +34,9 @@
 | **APK 下载** | [**Vmq-App-Optimized-v3.0-debug.apk**](https://github.com/Nanying666/Vmq-App-Optimized/releases/latest/download/Vmq-App-Optimized-v3.0-debug.apk) |
 | 版本 | versionName **3.0** / versionCode **13** |
 | 包名 | `com.shinian.pay` |
-| 体积 | 8.93 MB |
+| 体积 | 7.59 MB |
 | 签名 | Debug 签名 |
-| SHA-256 | `e288d37a5106cb98f56a469263a941438af10a2f31651360c32a90111ca0b9d8` |
+| SHA-256 | `4f36dd78b59c175930c5f16ec8838bb125285ef176b59b11a5f2ee39f4cea24b` |
 
 > ⚠️ **安装说明**
 > - 本 APK 为 **Debug 签名**（原版 release 密钥存放在原作者的 GitHub Actions secrets 中，无法获取）。

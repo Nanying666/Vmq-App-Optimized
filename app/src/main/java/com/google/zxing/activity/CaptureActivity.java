@@ -11,6 +11,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Vibrator;
+import android.util.Log;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import android.text.TextUtils;
@@ -176,9 +177,19 @@ public class CaptureActivity extends AppCompatActivity implements Callback {
         }
         Hashtable<DecodeHintType, String> hints = new Hashtable<>();
         hints.put(DecodeHintType.CHARACTER_SET, "UTF8"); //设置二维码内容的编码
-
         scanBitmap = BitmapUtil.decodeUri(this, uri, 500, 500);
-        RGBLuminanceSource source = new RGBLuminanceSource(scanBitmap);
+        // 防护：解码失败（非图片 / 已损坏 / 权限不足）时 decodeUri 返回 null，
+        // 直接构造 RGBLuminanceSource 会 NPE 崩溃
+        if (scanBitmap == null) {
+            return null;
+        }
+        RGBLuminanceSource source;
+        try {
+            source = new RGBLuminanceSource(scanBitmap);
+        } catch (Exception e) {
+            Log.e("CaptureActivity", "构造 LuminanceSource 失败", e);
+            return null;
+        }
         BinaryBitmap bitmap1 = new BinaryBitmap(new HybridBinarizer(source));
         QRCodeReader reader = new QRCodeReader();
         try {

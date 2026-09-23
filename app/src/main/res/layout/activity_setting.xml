@@ -296,10 +296,11 @@
                             android:text="开启/关闭屏幕常亮模式" />
 
                         <TextView
+                            android:id="@+id/txt_always_on_state"
                             style="@style/SettingRow.Summary"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="此功能可实现永不息屏掉单率接近0%" />
+                            android:text="已关闭" />
                     </LinearLayout>
 
                     <Switch

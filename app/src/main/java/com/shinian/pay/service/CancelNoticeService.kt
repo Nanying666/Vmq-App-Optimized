@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.annotation.Nullable
@@ -22,7 +23,15 @@ class CancelNoticeService : Service() {
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN_MR2) {
             createNotificationChannel()
             val builder = createNotificationBuilder()
-            startForeground(DaemonService.NOTICE_ID, builder.build())
+            // Android 14 起必须显式传入前台服务类型，否则抛 MissingForegroundServiceTypeException
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                startForeground(
+                    DaemonService.NOTICE_ID, builder.build(),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                )
+            } else {
+                startForeground(DaemonService.NOTICE_ID, builder.build())
+            }
             // 开启一条线程，去移除 DaemonService 弹出的通知
             Thread {
                 // 延迟 1s

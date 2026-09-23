@@ -14,9 +14,9 @@
 | **下载** | [Vmq-App-Optimized-v3.0-debug.apk](https://github.com/Nanying666/Vmq-App-Optimized/releases/latest/download/Vmq-App-Optimized-v3.0-debug.apk) |
 | 版本 | versionName `3.0` / versionCode `13` |
 | 包名 | `com.shinian.pay` |
-| 体积 | 8.93 MB |
+| 体积 | 7.59 MB |
 | 签名 | **Debug 签名** |
-| SHA-256 | `e288d37a5106cb98f56a469263a941438af10a2f31651360c32a90111ca0b9d8` |
+| SHA-256 | `4f36dd78b59c175930c5f16ec8838bb125285ef176b59b11a5f2ee39f4cea24b` |
 
 > ⚠️ 原版 release 密钥存放于原作者的 GitHub Actions secrets 中，无法获取，故本版只能提供 Debug 签名包。
 > 若已安装原版 release 包，因签名不同**需先卸载**再安装。
@@ -354,5 +354,58 @@
 GitHub API 强制要求 `User-Agent`，已显式设置；未鉴权限流 60 次/小时/IP，失败时静默降级为"已是最新"。
 
 > ⚠️ 原第三方接口依赖服务端契约，若你的服务端仍在使用该接口，请自行保留原逻辑或另建更新源。
+
+---
+
+## 十五、🐛 全量问题修复与工程优化
+
+基于对全部源码/资源的系统性审查，修复以下问题。
+
+### 🔴 功能性缺陷（会崩溃或功能失效）
+
+| # | 问题 | 影响 | 修复 |
+|:--|:--|:--|:--|
+| 1 | `AndroidManifest.xml` 仍声明已删除的 `.ui.SinglePixelActivity` | 系统实例化时 `ClassNotFoundException` | 删除该 `<activity>` 声明 |
+| 2 | `DaemonService` / `CancelNoticeService` 的 `startForeground()` **只传 2 个参数**，但 Manifest 声明了 `foregroundServiceType="dataSync"` | **Android 14 上抛 `MissingForegroundServiceTypeException`，保活链路直接失效** | 改用三参重载并传入 `FOREGROUND_SERVICE_TYPE_DATA_SYNC`（API 31+） |
+| 3 | `CaptureActivity.scanningImage()` 未判空即 `new RGBLuminanceSource(scanBitmap)` | 相册选到非图片/损坏图 → **NPE 崩溃** | 加 null 检查 + 构造异常兜底 |
+| 4 | 设置页用 `Switch.hint` 显示"开启/关闭" | `hint` 对 Switch **不生效**，状态文案从未显示；且回读语义与存储值相反 | 新增独立状态 `TextView`（`txt_always_on_state`）+ 抽取 `STATE_ON/STATE_OFF` 常量 |
+
+### 🟠 体积与依赖（APK 减少 1.34 MB）
+
+`app/libs/` 原有 7 个 jar，业务代码**零引用**其中 6 个，但全部被打进 APK：
+
+| 删除的 jar | 体积 | 原用途 |
+|:--|--:|:--|
+| `mail.jar` | 432 KB | JavaMail（未使用） |
+| `open_sdk_*.jar` | 344 KB | QQ SDK（未使用） |
+| `mta-sdk-2.0.0.jar` | 112 KB | 腾讯统计（未使用） |
+| `activation.jar` | 52 KB | JavaMail 依赖 |
+| `additionnal.jar` | 48 KB | JavaMail 依赖 |
+| `mid-sdk-2.10.jar` | 44 KB | 腾讯 MID（未使用） |
+
+- `core_3.0.1.jar`（zxing 核心）**改用 Maven 依赖** `com.google.zxing:core:3.5.3`，R8 可裁剪未使用的条码格式。
+- `app/libs/` 现已清空，移除冗余的 `fileTree` 依赖声明。
+
+> 实测 APK：**8.93 MB → 7.59 MB（−15%）**，且 APK 内 `javax/mail`、`com/tencent/stat`、`com/tencent/mid`、`com/tencent/connect` 符号**全部归零**。
+
+### 🟠 代码质量
+
+| 问题 | 修复 |
+|:--|:--|
+| `md5()` 在 `PayNotificationListenerService` 与 `MainActivity` 中**各有一份逐字符相同**的实现（签名逻辑分叉风险） | 抽出统一 `util/Md5.hex()`，两处委托调用 |
+| `SystemUtils` / `QrCodeGenerator` / `EncodingHandler` / `util/BitmapUtil` 均为死代码（0 引用） | 删除 4 个文件 |
+| Manifest 声明 6 项无引用权限（Account Sync 全家 + `RECEIVE_BOOT_COMPLETED`） | 删除，减少应用商店审核质疑 |
+| `strings.xml` 中 `skm`/`WeChat`/`FeedActivity`/`WxPayActivity`/`wxpay_ts` 等 0 引用 | 删除 |
+
+### 🟡 安全与工程配置
+
+| 项 | 原 | 现 |
+|:--|:--|:--|
+| `allowBackup` | `true` —— `shinian` SP（含 **host 与通讯密钥**）会进入云备份 / `adb backup` | `false` + 新增 `data_extraction_rules.xml` 显式排除 |
+| `android.enableJetifier` | `true`（已全量 AndroidX，无 support 库） | `false`，缩短构建时间 |
+| `proguard-rules.pro` | `-keep class okhttp3.** { *; }` 全量保留，R8 无法裁剪 | 收紧为按需保留；补 `SourceFile,LineNumberTable` 便于线上崩溃定位 |
+
+> ✅ 混淆安全已验证：`android:onClick` 由 AGP 自动生成 keep 规则（`aapt_rules.txt` 内 17 条）；
+> 收紧规则后 `minifyReleaseWithR8` 通过且无 Missing class 警告，反射依赖的类名与方法名均正确保留。
 
 ---

@@ -19,6 +19,7 @@ import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.shinian.pay.R
 import com.shinian.pay.manager.AppConstants
 import com.shinian.pay.service.DaemonService
@@ -38,6 +39,8 @@ class SettingActivity : AppCompatActivity() {
     private var version: TextView? = null
     private var state_switch: Switch? = null
     private var state_swich: String? = null
+    /** 屏幕常亮开关的状态文案（原实现用 Switch.hint，实际不生效） */
+    private var txtAlwaysOnState: TextView? = null
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -51,6 +54,7 @@ class SettingActivity : AppCompatActivity() {
 
         version = findViewById(R.id.version)
         state_switch = findViewById(R.id.state_switch)
+        txtAlwaysOnState = findViewById(R.id.txt_always_on_state)
         version!!.text = "当前软件版本 V" + appVersionName
 
         // 设置返回按钮点击事件
@@ -59,18 +63,24 @@ class SettingActivity : AppCompatActivity() {
         val state = getSharedPreferences("state_switch", MODE_PRIVATE)
         state_swich = state.getString("state_switch", "")
 
-        // 设置 Switch 开关状态
+        // 设置 Switch 开关状态 + 状态文案（Switch.hint 不生效，故用独立 TextView 呈现）
         setSwitchState(state_swich)
+        updateAlwaysOnStateText(state_swich == STATE_ON)
     }
 
-    /** 设置开关状态显示 */
+    /**
+     * 设置开关状态显示。
+     *
+     * 注意：`Switch.hint` 对 Switch 控件**不生效**（hint 仅用于 EditText），
+     * 旧实现依赖它显示"开启/关闭"实际从未显示过。这里改为同时更新
+     * 开关勾选态 + 旁边的状态文案（由调用方持有的 summary TextView 呈现）。
+     */
     private fun setSwitchState(state: String?) {
-        if ("no" == state) {
-            state_switch!!.isChecked = true
-            state_switch!!.hint = "开启"
-        } else if ("off" == state) {
-            state_switch!!.isChecked = false
-            state_switch!!.hint = "关闭"
+        // 存储语义：常量 STATE_ON="no" 表示"屏幕常亮已开启"，STATE_OFF="off" 表示已关闭
+        when (state) {
+            STATE_ON -> state_switch!!.isChecked = true
+            STATE_OFF -> state_switch!!.isChecked = false
+            else -> state_switch!!.isChecked = false
         }
     }
 
@@ -315,9 +325,9 @@ class SettingActivity : AppCompatActivity() {
             .setPositiveButton("我已知晓") { _, _ ->
                 // 先保存设置
                 getSharedPreferences("state_switch", MODE_PRIVATE).edit()
-                    .putString("state_switch", "no")
+                    .putString("state_switch", STATE_ON)
                     .apply()
-                state_switch!!.hint = "开启"
+                updateAlwaysOnStateText(true)
                 Toast.makeText(this, "屏幕永亮开启成功，2S 后重启...", Toast.LENGTH_SHORT).show()
                 // 延迟重启
                 restartApp(RESTART_DELAY_OPEN)
@@ -334,12 +344,21 @@ class SettingActivity : AppCompatActivity() {
     private fun disableAlwaysOn() {
         // 先保存设置
         getSharedPreferences("state_switch", MODE_PRIVATE).edit()
-            .putString("state_switch", "off")
+            .putString("state_switch", STATE_OFF)
             .apply()
-        state_switch!!.hint = "关闭"
+        updateAlwaysOnStateText(false)
         Toast.makeText(this, "屏幕永亮已关闭，1.5S 后重启...", Toast.LENGTH_SHORT).show()
         // 延迟重启
         restartApp(RESTART_DELAY_CLOSE)
+    }
+
+    /** 刷新「屏幕常亮」状态文案（替代原先无效的 Switch.hint） */
+    private fun updateAlwaysOnStateText(enabled: Boolean) {
+        txtAlwaysOnState?.text = if (enabled) "已开启 · 永不息屏" else "已关闭"
+        txtAlwaysOnState?.setTextColor(
+            if (enabled) ContextCompat.getColor(this, R.color.vmq_success)
+            else ContextCompat.getColor(this, R.color.vmq_on_surface_secondary)
+        )
     }
 
     /**
@@ -378,6 +397,12 @@ class SettingActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "SettingActivity"
+
+        /** 屏幕常亮：已开启（历史遗留的取值，勿改，否则旧用户配置失效） */
+        private const val STATE_ON = "no"
+
+        /** 屏幕常亮：已关闭 */
+        private const val STATE_OFF = "off"
 
         // 延迟时间常量
         private const val RESTART_DELAY_OPEN = 2000  // 开启时延迟2秒

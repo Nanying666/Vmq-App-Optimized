@@ -26,6 +26,7 @@ import com.shinian.pay.manager.AppConstants
 import com.shinian.pay.service.ForeService
 import com.shinian.pay.service.PayNotificationListenerService
 import com.shinian.pay.util.ChannelManager
+import com.shinian.pay.util.Md5
 import com.shinian.pay.util.NetworkClient
 import com.shinian.pay.util.PermissionGuideHelper
 import com.shinian.pay.util.SaveImageUtils
@@ -1163,28 +1164,8 @@ class MainActivity : AppCompatActivity(), OnLongClickListener {
         return true
     }
 
-    // MD5 取值
-    fun md5(string: String?): String {
-        if (TextUtils.isEmpty(string)) {
-            return ""
-        }
-        return try {
-            val md5 = MessageDigest.getInstance("MD5")
-            val bytes = md5.digest(string!!.toByteArray())
-            val result = StringBuilder()
-            for (b in bytes) {
-                var temp = Integer.toHexString(b.toInt() and 0xff)
-                if (temp.length == 1) {
-                    temp = "0$temp"
-                }
-                result.append(temp)
-            }
-            result.toString()
-        } catch (e: NoSuchAlgorithmException) {
-            e.printStackTrace()
-            ""
-        }
-    }
+    // MD5 取值（委托统一实现 Md5.hex，保持方法签名以兼容既有调用点）
+    fun md5(string: String?): String = Md5.hex(string)
 
     // 判断读写权限
     private fun pdPermissions(): Boolean {

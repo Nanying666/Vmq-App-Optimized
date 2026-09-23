@@ -68,8 +68,9 @@ android {
 }
 
 dependencies {
-    // NativeJar
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    // zxing 核心库：改用 Maven 依赖，便于 R8 裁剪未使用的条码格式
+    // （原先打包 core_3.0.1.jar，aztec/datamatrix/maxicode/oned 等格式全部保留，无法裁剪）
+    implementation 'com.google.zxing:core:3.5.3'
     // AndroidX
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'

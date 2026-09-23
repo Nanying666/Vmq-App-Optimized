@@ -18,6 +18,7 @@ import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.shinian.pay.ui.MainActivity
 import com.shinian.pay.util.ChannelManager
+import com.shinian.pay.util.Md5
 import com.shinian.pay.util.MoneyParser
 import com.shinian.pay.util.NetworkClient
 import okhttp3.Call
@@ -607,28 +608,8 @@ class PayNotificationListenerService : NotificationListenerService() {
         @JvmStatic
         fun getMoney(content: String?): String? = MoneyParser.getMoney(content)
 
-        // MD5 加密
+        // MD5 加密（委托统一实现 Md5.hex，保持静态方法签名以兼容既有调用点）
         @JvmStatic
-        fun md5(string: String?): String {
-            if (TextUtils.isEmpty(string)) {
-                return ""
-            }
-            return try {
-                val md5 = java.security.MessageDigest.getInstance("MD5")
-                val bytes = md5.digest(string!!.toByteArray())
-                val result = StringBuilder()
-                for (b in bytes) {
-                    var temp = Integer.toHexString(b.toInt() and 0xff)
-                    if (temp.length == 1) {
-                        temp = "0$temp"
-                    }
-                    result.append(temp)
-                }
-                result.toString()
-            } catch (e: java.security.NoSuchAlgorithmException) {
-                e.printStackTrace()
-                ""
-            }
-        }
+        fun md5(string: String?): String = Md5.hex(string)
     }
 }

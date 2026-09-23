@@ -36,16 +36,6 @@
     <!-- 前台服务数据同步权限 -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
 
-    <!-- Account Sync 所需权限 -->
-    <uses-permission android:name="android.permission.READ_SYNC_SETTINGS"/>
-    <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS"/>
-    <uses-permission android:name="android.permission.AUTHENTICATE_ACCOUNTS"/>
-    <uses-permission android:name="android.permission.GET_ACCOUNTS"/>
-    <uses-permission android:name="android.permission.WRITE_SYNC_ADAPTER"/>
-
-    <!-- JobScheduler 所需权限 -->
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
-
     <!-- 声明相机硬件特性 -->
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
 
@@ -61,7 +51,9 @@
     <application
             android:name=".VmqApplication"
             android:usesCleartextTraffic="true"
-            android:allowBackup="true"
+            android:allowBackup="false"
+            android:fullBackupContent="false"
+            android:dataExtractionRules="@xml/data_extraction_rules"
             android:icon="@drawable/ic_launcher"
             android:label="@string/app_name"
             android:supportsRtl="true"
@@ -91,14 +83,6 @@
                 android:label="@string/SettingActivity"
                 android:launchMode="singleTask"/>
 
-
-        <activity
-                android:name=".ui.SinglePixelActivity"
-                android:configChanges="keyboardHidden|orientation|screenSize|navigation|keyboard"
-                android:excludeFromRecents="true"
-                android:finishOnTaskLaunch="false"
-                android:launchMode="singleInstance"
-                android:theme="@style/AppTheme"/>
 
         <activity android:name="com.google.zxing.activity.CaptureActivity"/>
 
