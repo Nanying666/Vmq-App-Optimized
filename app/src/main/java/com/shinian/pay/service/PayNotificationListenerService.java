@@ -101,16 +101,26 @@ public class PayNotificationListenerService extends NotificationListenerService 
                     key = read.getString("key", "");
 
                     String t = String.valueOf(new Date().getTime());
+                    // 双通道：自动解析当前最可用 host+key（主/备故障自动切换，见 ChannelManager）
+                    com.shinian.pay.util.ChannelManager.resolve(this);
                     String sign = md5(t + key);
 
                     // 使用统一网络客户端：https/http 交替重试 + 跟随308重定向 + DoH加密DNS
                     // 解决移动网络下连接被间歇重置导致心跳一直失败的问题
                     if (host != null && !host.isEmpty()) {
-                        String path = "/appHeart?t=" + t + "&sign=" + sign;
-                        NetworkClient.getWithRetry(host, path, new Callback() {
+                        final String[] ch = com.shinian.pay.util.ChannelManager.resolve(this);
+                        String activeHost = ch[0];
+                        String activeKey = ch[1];
+                        if (activeHost == null || activeHost.isEmpty()) activeHost = host;
+                        if (activeKey == null) activeKey = key;
+                        String sign2 = md5(t + activeKey);
+                        String path = "/appHeart?t=" + t + "&sign=" + sign2;
+                        NetworkClient.getWithRetry(activeHost, path, new Callback() {
                             @Override
                             public void onFailure(Call call, IOException e) {
                                 final String error = e != null ? e.getMessage() : "未知错误";
+                                // 失败记账：主通道连续失败达阈值且有备用 → 自动切备用
+                                com.shinian.pay.util.ChannelManager.recordMainFailure(PayNotificationListenerService.this);
                                 mainHandler.post(new Runnable() {
                                     @Override
                                     public void run() {
@@ -129,6 +139,8 @@ public class PayNotificationListenerService extends NotificationListenerService 
 
                             @Override
                             public void onResponse(Call call, Response response) throws IOException {
+                                // 成功记账：主通道健康恢复阈值后自动回切
+                                com.shinian.pay.util.ChannelManager.recordMainSuccess(PayNotificationListenerService.this);
                                 Log.d(TAG, "onResponse heard: " + response.body().string());
                             }
                         });
@@ -367,26 +379,34 @@ public class PayNotificationListenerService extends NotificationListenerService 
         SharedPreferences read = getSharedPreferences("shinian", MODE_PRIVATE);
         host = read.getString("host", "");
         key = read.getString("key", "");
-    
+
         // 格式化价格，避免精度问题（例如：0.1 变成 0.10000000000000000555）
         String priceStr = String.format("%.2f", price);
-            
+
         Log.d(TAG, "appPush: 开始 - 类型:" + type + ", 金额:" + priceStr);
-    
+
+        // 双通道：解析当前最可用 host+key（主/备故障自动切换；sign 必须用对应 key）
+        final String[] ch = com.shinian.pay.util.ChannelManager.resolve(this);
+        String activeHost = (ch[0] == null || ch[0].isEmpty()) ? host : ch[0];
+        final String activeKey = (ch[1] == null) ? key : ch[1];
+        final boolean usingBackup = !activeHost.equals(host);
+
         // 构建请求 URL
         String t = String.valueOf(new Date().getTime());
-        String sign = md5(type + priceStr + t + key);
-        String url = buildPushUrl(host, type, priceStr, t, sign);
-            
-        Log.d(TAG, "appPush: URL:" + url);
-    
+        String sign = md5(type + priceStr + t + activeKey);
+        String url = buildPushUrl(activeHost, type, priceStr, t, sign);
+
+        Log.d(TAG, "appPush: URL:" + url + (usingBackup ? " [备用通道]" : " [主通道]"));
+
         // 使用统一网络客户端（https/http 交替重试 + 跟随308重定向 + DoH加密DNS）
         // 确保收款回调在弱网/被重置环境下也能尽可能送达
         String pushPath = "/appPush?t=" + t + "&type=" + type + "&price=" + priceStr + "&sign=" + sign;
-        NetworkClient.getWithRetry(host, pushPath, new Callback() {
+        NetworkClient.getWithRetry(activeHost, pushPath, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 String error = e.getMessage();
+                // 记账：驱动主/备切换（主连续失败达阈值且有备用→切备用）
+                com.shinian.pay.util.ChannelManager.recordMainFailure(PayNotificationListenerService.this);
                 Log.e(TAG, "appPush: 请求失败 - " + error);
                     
                 // 发送失败日志
@@ -506,11 +526,16 @@ public class PayNotificationListenerService extends NotificationListenerService 
                 Thread.sleep(1000);
 
                 String t = String.valueOf(new Date().getTime());
-                String sign = md5(type + priceStr + t + key);
+                // 双通道：补单也用当前最可用 host+key（主/备故障自动切换；sign 用对应 key）
+                String[] ch2 = com.shinian.pay.util.ChannelManager.resolve(this);
+                String retryHost = (ch2[0] == null || ch2[0].isEmpty()) ? host : ch2[0];
+                String retryKey = (ch2[1] == null) ? key : ch2[1];
+                String sign = md5(type + priceStr + t + retryKey);
 
                 // 使用统一网络客户端同步重试（https/http 交替重试 + DoH加密DNS）
                 String path = "/appPush?t=" + t + "&type=" + type + "&price=" + priceStr + "&sign=" + sign;
-                String data = NetworkClient.getWithRetrySync(host, path);
+                String data = NetworkClient.getWithRetrySync(retryHost, path);
+                com.shinian.pay.util.ChannelManager.recordMainSuccess(PayNotificationListenerService.this);
 
                 // 解析响应
                 JSONObject jsonObject = new JSONObject(data);

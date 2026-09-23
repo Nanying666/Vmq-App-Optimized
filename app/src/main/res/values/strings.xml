@@ -19,6 +19,8 @@
     <string name="pz">手动配置</string>
     <string name="xt">检测心跳</string>
     <string name="jt">检测监听</string>
+    <string name="backup_cfg">备用通道配置</string>
+    <string name="backup_state_default">通道状态：主通道</string>
     <string name="ht_state">监控日志(删除)：</string>
     <string name="dl"></string>
     <string name="bq">Copyright © 2022 decade · 版权所有</string>

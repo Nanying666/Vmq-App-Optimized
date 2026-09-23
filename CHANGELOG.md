@@ -14,9 +14,9 @@
 | **下载** | [Vmq-fix-heartbeat-debug.apk](https://github.com/Nanying666/Vmq-App-Optimized/releases/latest/download/Vmq-fix-heartbeat-debug.apk) |
 | 版本 | versionName `3.0` / versionCode `13` |
 | 包名 | `com.shinian.pay` |
-| 体积 | 9.14 MB（原版 9.28 MB） |
+| 体积 | 9.14 MB |
 | 签名 | **Debug 签名** |
-| SHA-256 | `ae93a724899baac4c3c233f8e90f138a583d3ea4d2cc32ad1b14967f7d50fa21` |
+| SHA-256 | `2890f7e8a8ab1b0146504c0b3c5528e538ef89374e1dac9436d2641d0252cf9f` |
 
 > ⚠️ 原版 release 密钥存放于原作者的 GitHub Actions secrets 中，无法获取，故本版只能提供 Debug 签名包。
 > 若已安装原版 release 包，因签名不同**需先卸载**再安装。
@@ -236,7 +236,37 @@
 
 ---
 
-## 八、许可证与致谢
+## 九、🔀 双通道自动健康检查与故障切换（新增 `ChannelManager`）
+
+在双通道网络层（域名 + 裸 IP）基础上，进一步支持**可选的备用服务器通道**：
+主通道连续失败达到阈值时自动切换到备用通道，主通道恢复后自动回切（迟滞避免抖动）。
+
+| 项 | 说明 |
+|:---|:---|
+| 配置 | 新增可选 `host2`/`key2`（格式同主通道，留空退化为单通道，**完全向后兼容**） |
+| 切换 | 主通道连续失败 3 次且有备用 → 切备用；主通道健康 3 次 → 回切主（hysteresis） |
+| 持久化 | 通道选择 + 失败/健康计数存入 `shinian` SP，重启后延续 |
+| 记账 | 心跳 / 收款回调 / 补单 / 手动检测全量接入 `ChannelManager` 记账 |
+| 签名 | 切换通道时 sign 用对应 key 重新计算（`md5(t + activeKey)`），避免跨通道验签失败 |
+| UI | 主界面新增「备用通道配置」按钮 + 当前通道状态显示 |
+| 线程安全 | 全部状态变更在 `synchronized` 锁内进行 |
+
+> ⚠️ 旧用户/未配置 `host2` 时行为与改造前完全一致（恒用主通道），不影响现有收款链路。
+
+---
+
+## 十、🧪 单元测试补充（`app/src/test`）
+
+| 测试类 | 用例数 | 覆盖 |
+|:---|:---:|:---|
+| `PayNotificationParserTest` | 57 | 微信/支付宝各类通知文案→金额解析（含边界/易错用例），参数化 |
+| `ChannelManagerTest` | 4 | 双通道故障切换状态机参数/约束/方法签名回归 |
+
+总计 **61 个用例全部通过（0 failures / 0 errors）**，CI 可直接 `:app:testDebugUnitTest` 验证。
+
+---
+
+## 十一、许可证与致谢
 
 本项目基于 [shinian-a/Vmq-App](https://github.com/shinian-a/Vmq-App) 二次开发。
 

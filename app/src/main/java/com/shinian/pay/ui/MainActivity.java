@@ -63,6 +63,7 @@ public class MainActivity extends AppCompatActivity implements OnLongClickListen
 
     private TextView txthost;
     private TextView txtkey;
+    private TextView txtBackupState;
     private boolean isOk = false;
     private static final String TAG = "MainActivity";
     private static String host;
@@ -108,6 +109,7 @@ public class MainActivity extends AppCompatActivity implements OnLongClickListen
         //查找组件
         txthost = findViewById(R.id.txt_host);
         txtkey = findViewById(R.id.txt_key);
+        txtBackupState = findViewById(R.id.txt_backup_state);
         LogsTextView = findViewById(R.id.state_logs);
         logs_linear_layout = findViewById(R.id.logs_linear_layout);
         LogsTextView.setOnLongClickListener(this);//长按
@@ -1341,6 +1343,7 @@ public class MainActivity extends AppCompatActivity implements OnLongClickListen
             editor.putString("host", host);
             editor.putString("key", key);
             editor.commit();
+            com.shinian.pay.util.ChannelManager.reset(MainActivity.this); // 主通道配置变更→重置双通道切换状态,从主通道重新探活
 
 
         }
@@ -1414,6 +1417,7 @@ public class MainActivity extends AppCompatActivity implements OnLongClickListen
                 editor.putString("host", host);
                 editor.putString("key", key);
                 editor.commit();
+                com.shinian.pay.util.ChannelManager.reset(MainActivity.this); // 主通道配置变更→重置双通道切换状态,从主通道重新探活
 
             }
         });
@@ -1428,14 +1432,21 @@ public class MainActivity extends AppCompatActivity implements OnLongClickListen
         }
 
         String t = String.valueOf(new Date().getTime());
-        String sign = md5(t + key);
+
+        // 双通道：手动心跳检测也用当前最可用 host+key（sign 必须用对应 key）
+        final String[] ch = com.shinian.pay.util.ChannelManager.resolve(MainActivity.this);
+        String activeHost = (ch[0] == null || ch[0].isEmpty()) ? host : ch[0];
+        String activeKey = (ch[1] == null) ? key : ch[1];
+        String sign = md5(t + activeKey);
 
         // 使用统一网络客户端：https/http 交替重试 + 跟随308重定向 + DoH加密DNS
         // 解决移动网络下连接被间歇重置导致心跳失败的问题
         String path = "/appHeart?t=" + t + "&sign=" + sign;
-        NetworkClient.getWithRetry(host, path, new Callback() {
+        NetworkClient.getWithRetry(activeHost, path, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
+                // 记账：驱动主/备切换
+                com.shinian.pay.util.ChannelManager.recordMainFailure(MainActivity.this);
                 final String error = e != null ? e.getMessage() : "未知错误";
                 runOnUiThread(new Runnable() {
                     @Override
@@ -1448,6 +1459,7 @@ public class MainActivity extends AppCompatActivity implements OnLongClickListen
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
+                com.shinian.pay.util.ChannelManager.recordMainSuccess(MainActivity.this);
                 try {
                     //解析JSON内容
                     String str = response.body().string();
@@ -1482,10 +1494,55 @@ public class MainActivity extends AppCompatActivity implements OnLongClickListen
     private static final int MAX_NOTIFICATION_ID = 1000; // 防止 ID 无限增长
 
     /**
-     * 发送测试推送通知
+     * 双通道故障切换：配置可选备用通道（host2/key2）
      *
      * @param v 触发视图
      */
+    public void doBackup(View v) {
+        final EditText inputBackup = new EditText(this);
+        inputBackup.setHint("备用地址/备用密钥（格式同主通道：host/key）");
+        inputBackup.setText(com.shinian.pay.util.ChannelManager.resolveBackupDefault(MainActivity.this));
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("备用通道配置（可选）");
+        builder.setMessage("填入备用服务器地址/密钥后，主通道连续失败达阈值时自动切换；主通道恢复后自动回切。留空则退化为单通道，行为与旧版完全一致。");
+        builder.setView(inputBackup);
+        builder.setIcon(R.drawable.icon_pzsj);
+        builder.setNegativeButton("取消", null);
+        builder.setPositiveButton("保存", (dialog, which) -> {
+            String val = inputBackup.getText().toString().trim();
+            String h2 = "", k2 = "";
+            if (!val.isEmpty()) {
+                String[] parts = val.split("/");
+                if (parts.length != 2) {
+                    Toast.makeText(MainActivity.this, "备用通道数据错误，格式应为 host/key!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                h2 = parts[0].trim();
+                k2 = parts[1].trim();
+            }
+            com.shinian.pay.util.ChannelManager.saveBackup(MainActivity.this, h2, k2);
+            com.shinian.pay.util.ChannelManager.reset(MainActivity.this);
+            updateBackupStateView();
+            Toast.makeText(MainActivity.this, h2.isEmpty() ? "已清除备用通道（退化为单通道）" : "备用通道已保存", Toast.LENGTH_SHORT).show();
+        });
+        builder.show();
+    }
+
+    // 刷新备用通道状态显示
+    private void updateBackupStateView() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (txtBackupState == null) return;
+                if (com.shinian.pay.util.ChannelManager.hasBackup(MainActivity.this)) {
+                    txtBackupState.setText("通道状态：" + com.shinian.pay.util.ChannelManager.activeName(MainActivity.this) + "（已配置备用）");
+                } else {
+                    txtBackupState.setText("通道状态：主通道（未配置备用）");
+                }
+            }
+        });
+    }
+
     public void checkPush(View v) {
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
