@@ -16,7 +16,7 @@
 > | 🧹 代码清理 | 删除 12 个失效保活文件（约 1600 行），保留真正有效的保活组合 |
 > | 🛡️ 安全 | 更新检查切 HTTPS、release 包自动关闭调试日志 |
 > | 🔀 双通道 | 可选备用服务器通道，主通道连续失败自动切换、恢复自动回切（迟滞防抖） |
-> | 🧪 单元测试 | 通知解析 / 金额解析 / 双通道状态机，共 **69 个 JVM 用例** |
+> | 🧪 单元测试 | 通知解析 / 金额解析 / 双通道状态机，共 **77 个 JVM 用例** |
 > | 🧱 Kotlin 化 | 业务包 `com.shinian` **100% Kotlin**（Kotlin 2.3.10 + Coroutines） |
 > | 🎨 UI 重构 | 建立设计系统（色板/间距/样式），全部页面改为卡片式 Material 风格 |
 >
@@ -34,9 +34,9 @@
 | **APK 下载** | [**Vmq-App-Optimized-v3.0-debug.apk**](https://github.com/Nanying666/Vmq-App-Optimized/releases/latest/download/Vmq-App-Optimized-v3.0-debug.apk) |
 | 版本 | versionName **3.0** / versionCode **13** |
 | 包名 | `com.shinian.pay` |
-| 体积 | 7.59 MB |
+| 体积 | 7.66 MB |
 | 签名 | Debug 签名 |
-| SHA-256 | `4f36dd78b59c175930c5f16ec8838bb125285ef176b59b11a5f2ee39f4cea24b` |
+| SHA-256 | `39cf921f44d071241575c5a54f117d3fe718f072efca53c6068cdde3828012bb` |
 
 > ⚠️ **安装说明**
 > - 本 APK 为 **Debug 签名**（原版 release 密钥存放在原作者的 GitHub Actions secrets 中，无法获取）。

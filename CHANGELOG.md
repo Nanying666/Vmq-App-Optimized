@@ -14,9 +14,9 @@
 | **下载** | [Vmq-App-Optimized-v3.0-debug.apk](https://github.com/Nanying666/Vmq-App-Optimized/releases/latest/download/Vmq-App-Optimized-v3.0-debug.apk) |
 | 版本 | versionName `3.0` / versionCode `13` |
 | 包名 | `com.shinian.pay` |
-| 体积 | 7.59 MB |
+| 体积 | 7.66 MB |
 | 签名 | **Debug 签名** |
-| SHA-256 | `4f36dd78b59c175930c5f16ec8838bb125285ef176b59b11a5f2ee39f4cea24b` |
+| SHA-256 | `39cf921f44d071241575c5a54f117d3fe718f072efca53c6068cdde3828012bb` |
 
 > ⚠️ 原版 release 密钥存放于原作者的 GitHub Actions secrets 中，无法获取，故本版只能提供 Debug 签名包。
 > 若已安装原版 release 包，因签名不同**需先卸载**再安装。
@@ -386,7 +386,7 @@ GitHub API 强制要求 `User-Agent`，已显式设置；未鉴权限流 60 次/
 - `core_3.0.1.jar`（zxing 核心）**改用 Maven 依赖** `com.google.zxing:core:3.5.3`，R8 可裁剪未使用的条码格式。
 - `app/libs/` 现已清空，移除冗余的 `fileTree` 依赖声明。
 
-> 实测 APK：**8.93 MB → 7.59 MB（−15%）**，且 APK 内 `javax/mail`、`com/tencent/stat`、`com/tencent/mid`、`com/tencent/connect` 符号**全部归零**。
+> 实测 APK：**8.93 MB → 7.66 MB（−15%）**，且 APK 内 `javax/mail`、`com/tencent/stat`、`com/tencent/mid`、`com/tencent/connect` 符号**全部归零**。
 
 ### 🟠 代码质量
 
@@ -407,5 +407,68 @@ GitHub API 强制要求 `User-Agent`，已显式设置；未鉴权限流 60 次/
 
 > ✅ 混淆安全已验证：`android:onClick` 由 AGP 自动生成 keep 规则（`aapt_rules.txt` 内 17 条）；
 > 收紧规则后 `minifyReleaseWithR8` 通过且无 Missing class 警告，反射依赖的类名与方法名均正确保留。
+
+---
+
+## 十六、📱 真机实测问题修复
+
+以下问题来自**真机运行反馈**（非静态分析），均已定位根因并修复。
+
+### 🔴 1. 同一笔收款被重复回调（会导致重复入账）
+
+**现象**：日志中出现两条时间相同、内容完全一致的"监听到微信支付收款 1.80 元 通知回调状态：成功"。
+
+**根因**：微信/支付宝在收款后会对**同一条通知**多次更新（弹出动画、内容补充等），
+每次更新系统都会回调 `onNotificationPosted`，旧实现未做去重，于是同一笔收款被回调服务端两次。
+
+**修复**：新增 `util/NotificationDeduper`，以「通知 `key` + 内容指纹」为键做**双重判定**：
+
+| 条件 | 说明 |
+|:--|:--|
+| 内容指纹相同 | 同一笔收款的文案不会变化 |
+| 落在 10 秒窗口内 | 重复通知通常在数秒内到达 |
+
+两个条件**同时满足**才判为重复 —— 避免误杀真实的多笔收款（如连续两笔 1.80 元）。
+附带惰性清理，记录数不会无限增长。
+
+> 已补 **8 条单元测试**覆盖边界：窗口内/外、相同文案不同 key、相同 key 不同金额、边界值、容量上限、清空重置。
+
+### 🔴 2. 通知栏常驻通知会消失（后台不常驻）
+
+**现象**："通知栏服务正在后台运行中"久了会消失，收款监听随之失效。
+
+**根因**：`ForeService` 无自愈机制，且 `MainActivity.onCreate` **只启动一次** ——
+进程被系统回收后，通知消失且再无拉起入口。
+
+**修复**（三重保障）：
+
+| 机制 | 说明 |
+|:--|:--|
+| `ForeService.onDestroy` 自愈 | 非用户主动退出时立即重新 `startForegroundService` |
+| `MainActivity.onResume` 兜底 | 每次回到前台都确保服务在运行（幂等） |
+| `START_STICKY` | 被系统杀死后由系统自动重建 |
+
+### 🟠 3. 顶栏标题重复显示两遍
+
+**现象**：顶栏显示"V免签监控端_Pro V免签监控端_Pro"。
+
+**根因**：`setSupportActionBar(toolbar)` 会把 Activity 的 `android:label` 作为 ActionBar 标题，
+而布局内 Toolbar 已自带标题 `TextView`，两者叠加。
+
+**修复**：`supportActionBar?.setDisplayShowTitleEnabled(false)`。
+
+### 🟠 4. 监听日志重复刷屏
+
+**现象**：日志中"监听服务开启成功！"连续出现多条。
+
+**根因**：系统在服务重连时会多次回调 `onListenerConnected`。
+
+**修复**：加 5 秒去重窗口，窗口内重入只记录调试日志、不再重复写入监控日志。
+
+### 🟠 5. 退出 APP 后残留通知/音频
+
+**根因**：`exitApp()` 只停了 `ForeService` 与监听服务，**遗漏** `DaemonService` 与 `PlayerMusicService`。
+
+**修复**：补上两者的 `stopService`，退出更干净。
 
 ---

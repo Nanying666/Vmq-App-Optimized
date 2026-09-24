@@ -23,8 +23,10 @@ import androidx.core.content.FileProvider
 import com.google.zxing.activity.CaptureActivity
 import com.shinian.pay.R
 import com.shinian.pay.manager.AppConstants
+import com.shinian.pay.service.DaemonService
 import com.shinian.pay.service.ForeService
 import com.shinian.pay.service.PayNotificationListenerService
+import com.shinian.pay.service.PlayerMusicService
 import com.shinian.pay.util.ChannelManager
 import com.shinian.pay.util.Md5
 import com.shinian.pay.util.NetworkClient
@@ -93,6 +95,9 @@ class MainActivity : AppCompatActivity(), OnLongClickListener {
         // 主题为 NoActionBar，这里把布局内 Toolbar 接入为 support action bar，
         // 使 onCreateOptionsMenu 注入的菜单（溢出菜单按钮）正常显示。
         setSupportActionBar(findViewById<Toolbar?>(R.id.toolbar))
+        // setSupportActionBar 会把 Activity 的 android:label 作为 ActionBar 标题，
+        // 而布局内 Toolbar 已自带标题 TextView，若不隐藏会**重复显示两遍标题**。
+        supportActionBar?.setDisplayShowTitleEnabled(false)
 
         Log.d(TAG, "布局加载完成")
 
@@ -185,6 +190,23 @@ class MainActivity : AppCompatActivity(), OnLongClickListener {
         super.onResume()
         // 用户从系统设置页授权返回后自动复查
         PermissionGuideHelper.onResumeCheck(this)
+        // 兜底：每次回到前台都确保前台服务在运行。
+        // 若进程曾被系统回收，服务会在此被重新拉起，避免通知栏常驻通知消失。
+        ensureForegroundService()
+    }
+
+    /** 确保前台服务处于运行状态（幂等：已运行则 startService 无副作用） */
+    private fun ensureForegroundService() {
+        try {
+            val serviceIntent = Intent(this, ForeService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent)
+            } else {
+                startService(serviceIntent)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "确保前台服务运行失败：${e.message}", e)
+        }
     }
 
     /** 获取 MIUI 版本号（非 MIUI 返回提示） */
@@ -235,6 +257,15 @@ class MainActivity : AppCompatActivity(), OnLongClickListener {
                 Log.d(TAG, "已停止前台监听服务")
             } catch (e: Exception) {
                 Log.e(TAG, "停止前台服务失败", e)
+            }
+
+            // 停止守护服务与保活音频服务（此前遗漏，导致退出后仍残留通知/音频）
+            try {
+                stopService(Intent(this, DaemonService::class.java))
+                stopService(Intent(this, PlayerMusicService::class.java))
+                Log.d(TAG, "已停止守护/保活服务")
+            } catch (e: Exception) {
+                Log.e(TAG, "停止守护服务失败", e)
             }
 
             try {

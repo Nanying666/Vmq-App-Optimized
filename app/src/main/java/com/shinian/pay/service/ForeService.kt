@@ -14,6 +14,7 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import com.shinian.pay.R
+import com.shinian.pay.manager.AppConstants
 import com.shinian.pay.ui.MainActivity
 
 /**
@@ -32,7 +33,7 @@ class ForeService : Service() {
         Log.d(TAG, "onStartCommand() called")
         // Android 14 关键修复：立即调用 startForeground()，必须在 5 秒内完成，越快越好
         setNotification()
-        // 确保服务被杀死后重启
+        // START_STICKY：被系统杀死后由系统自动重建（配合 onDestroy 的重启形成双保险）
         return START_STICKY
     }
 
@@ -40,6 +41,33 @@ class ForeService : Service() {
         Log.d(TAG, "onDestroy() called")
         stopForeground(true)
         super.onDestroy()
+        // 自愈：非用户主动退出时，被系统回收后立即重新拉起。
+        // 旧实现只在 MainActivity.onCreate 启动一次，进程被回收后通知栏
+        // 常驻通知消失且再无拉起入口（用户实测"久了会没"）。
+        if (!AppConstants.IS_USER_EXIT) {
+            try {
+                val restart = Intent(applicationContext, ForeService::class.java)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    applicationContext.startForegroundService(restart)
+                } else {
+                    applicationContext.startService(restart)
+                }
+                Log.d(TAG, "ForeService 已被系统回收，正在自动重启")
+            } catch (e: Exception) {
+                Log.e(TAG, "ForeService 自动重启失败：${e.message}", e)
+            }
+        }
+    }
+
+    /**
+     * 用户从最近任务列表划掉 App 时触发。
+     *
+     * 这里返回后服务仍会被系统结束，但配合 `onDestroy` 的重启逻辑可尽快恢复常驻通知；
+     * 若用户在设置中开启了「自启动」，系统亦会重新拉起。
+     */
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        Log.d(TAG, "onTaskRemoved() called")
+        super.onTaskRemoved(rootIntent)
     }
 
     /**

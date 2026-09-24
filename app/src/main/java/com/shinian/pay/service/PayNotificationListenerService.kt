@@ -39,6 +39,18 @@ class PayNotificationListenerService : NotificationListenerService() {
     private var mWakeLock: PowerManager.WakeLock? = null
     private var mainHandler: Handler? = null
 
+    /**
+     * 收款通知去重器（见 [com.shinian.pay.util.NotificationDeduper]）。
+     *
+     * 微信/支付宝收到款后会对**同一条通知**多次更新，每次都回调 `onNotificationPosted`，
+     * 若不去重会重复回调服务端造成重复入账（用户实测日志中出现两条相同记录）。
+     */
+    private val deduper = com.shinian.pay.util.NotificationDeduper()
+
+    /** 上次打印"监听服务开启成功"的时间戳（用于 onListenerConnected 重入去重） */
+    @Volatile
+    private var lastConnectedLogAt = 0L
+
     /** 获取主线程 Handler（懒初始化） */
     private fun mainHandler(): Handler {
         var h = mainHandler
@@ -150,6 +162,19 @@ class PayNotificationListenerService : NotificationListenerService() {
         val title = extras.getString(NotificationCompat.EXTRA_TITLE, "") ?: ""
         val content = extras.getString(NotificationCompat.EXTRA_TEXT, "") ?: ""
         Log.d(TAG, "包名: $pkg")
+
+        // ===== 收款去重 =====
+        // 仅对支付类应用去重（自身测试通知不需要）。
+        // 微信/支付宝收到款后会对同一通知多次更新，每次都回调本方法，
+        // 若不去重会重复回调服务端造成重复入账。
+        if (pkg == PACKAGE_WECHAT || pkg == PACKAGE_WECHAT_WORK || pkg == PACKAGE_ALIPAY) {
+            val fingerprint = "$pkg|$title|$content"
+            if (deduper.isDuplicate(sbn.key ?: fingerprint, fingerprint)) {
+                Log.d(TAG, "重复通知已忽略: $pkg")
+                return
+            }
+        }
+
         // 根据包名分发处理逻辑
         when (pkg) {
             PACKAGE_WECHAT, PACKAGE_WECHAT_WORK -> handleWechatNotification(title, content)
@@ -482,9 +507,18 @@ class PayNotificationListenerService : NotificationListenerService() {
         // 初始化主线程 Handler
         mainHandler()
 
-        // 初始化心跳线程
+        // 初始化心跳线程（内部已有 newThread != null 的防重入保护）
         initAppHeart()
-        // 延迟发送监听日志
+
+        // 延迟发送监听日志。
+        // 注意：系统在服务重连时会多次回调本方法，若不做去重会连续打印多条
+        // "监听服务开启成功！"（用户实测日志中该条出现多次）。
+        val nowMs = System.currentTimeMillis()
+        if (nowMs - lastConnectedLogAt < CONNECT_LOG_WINDOW_MS) {
+            Log.d(TAG, "onListenerConnected 重入，跳过重复日志")
+            return
+        }
+        lastConnectedLogAt = nowMs
         mainHandler().postDelayed({
             sendMonitorLogs(now() + "\r\r\r\r" + "监听服务开启成功！")
         }, 1000)
@@ -596,6 +630,11 @@ class PayNotificationListenerService : NotificationListenerService() {
         private val WECHAT_PAY_TITLES = arrayOf(
             "微信支付", "微信收款助手", "微信收款商业版", "对外收款", "企业微信", "Weixin Cashier Assistant"
         )
+
+        /**
+         * "监听服务开启成功"日志的去重窗口（毫秒）：服务重连时避免刷屏
+         */
+        private const val CONNECT_LOG_WINDOW_MS = 5_000L
 
         /** 当前时间字符串（yyyy-MM-dd HH:mm:ss），统一日志时间格式 */
         private fun now(): String =
